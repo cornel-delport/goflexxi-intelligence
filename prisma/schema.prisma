@@ -1,0 +1,432 @@
+// GoFlexxi Intelligence Platform - Prisma Schema
+// PostgreSQL (Supabase recommended for production and local dev)
+// Set DATABASE_URL in .env — see .env.example for the format
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── GOOGLE DRIVE INGESTION ────────────────────────────────────────────────────
+
+/// Represents a file discovered in a Google Drive folder
+model DriveFile {
+  id               String   @id @default(cuid())
+  provider         String   @default("google_drive")
+  driveFileId      String   @unique  // Google Drive file ID
+  folderId         String             // Google Drive folder ID
+  name             String
+  mimeType         String?
+  extension        String?            // xlsx | xls | csv
+  webViewLink      String?
+  createdAtDrive   DateTime?
+  modifiedAtDrive  DateTime?
+  discoveredAt     DateTime @default(now())
+  lastSyncedAt     DateTime?
+  importStatus     String   @default("pending") // pending | importing | imported | failed | ignored | updated
+  alreadyImported  Boolean  @default(false)
+  lastImportedAt   DateTime?
+  checksum         String?            // MD5 from Drive
+  importedFileId   String?            // link to ImportedFile after import
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  importJobs       FileImportJob[]
+}
+
+/// Tracks each import attempt (for history and error logging)
+model FileImportJob {
+  id               String   @id @default(cuid())
+  sourceType       String   @default("google_drive") // google_drive | local_upload | seed
+  driveFileId      String?
+  driveFile        DriveFile? @relation(fields: [driveFileId], references: [id])
+  importedFileId   String?    // populated on success
+  startedAt        DateTime @default(now())
+  completedAt      DateTime?
+  status           String   @default("running") // running | success | failed | partial
+  totalRows        Int      @default(0)
+  importedRows     Int      @default(0)
+  skippedRows      Int      @default(0)
+  errorMessage     String?
+  mappingProfile   String?
+  log              String?
+}
+
+// ─── FILE TRACKING ──────────────────────────────────────────────────────────────
+
+model ImportedFile {
+  id            String   @id @default(cuid())
+  filename      String
+  originalName  String
+  fileType      String   // "xlsx" | "csv"
+  sheetName     String?
+  rowCount      Int      @default(0)
+  importedCount Int      @default(0)
+  skippedCount  Int      @default(0)
+  status        String   @default("pending") // pending | processing | complete | error
+  mappingNotes  String?
+  errorLog      String?
+  importedAt    DateTime @default(now())
+  importedBy    String   @default("team")
+
+  // Relations
+  events           Event[]
+  opportunities    Opportunity[]
+  supporterClubs   SupporterClub[]
+  contacts         Contact[]
+  travelAgents     TravelAgent[]
+  clubDepartments  ClubDepartment[]
+}
+
+// ─── TEAMS ───────────────────────────────────────────────────────────────────────
+
+model Team {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  shortName   String?
+  country     String?
+  city        String?
+  sport       String? @default("Football")
+  league      String?
+  website     String?
+  logoUrl     String?
+  notes       String?
+
+  // Relations
+  homeEvents    Event[]           @relation("HomeTeam")
+  awayEvents    Event[]           @relation("AwayTeam")
+  supporterClubs SupporterClub[]
+  clubDepartments ClubDepartment[]
+}
+
+// ─── EVENTS ──────────────────────────────────────────────────────────────────────
+
+model Event {
+  id                      String    @id @default(cuid())
+  eventName               String
+  competition             String?
+  stage                   String?
+  category                String?   // Football, Rugby, Basketball, etc.
+  eventDate               DateTime?
+  dateText                String?   // original date string from import
+  datePrecision           String?   // exact | month | season
+  homeTeamName            String?
+  awayTeamName            String?
+  venueName               String?
+  city                    String?
+  regionState             String?
+  country                 String?
+  supporterRelevance      String?
+  transportOpportunityType String?  // bus | charter | scheduled_air | hospitality | mixed
+  closestDepartureAirport String?
+  closestArrivalAirport   String?
+  priorityRating          Int?      // 1-5
+  priorityBucket          String?   // high | medium | low
+  estimatedTravelGroup    Int?
+  charterWorthy           Boolean   @default(false)
+  busWorthy               Boolean   @default(false)
+  flightWorthy            Boolean   @default(false)
+  hospitalityWorthy       Boolean   @default(false)
+  notes                   String?
+  status                  String    @default("active") // active | archived | needs_review
+  tags                    String?   // comma separated
+
+  // Source traceability
+  sourceFileId            String?
+  sourceFile              ImportedFile? @relation(fields: [sourceFileId], references: [id])
+  sourceSheetName         String?
+  sourceRowNumber         Int?
+
+  // Relations
+  homeTeam                Team?     @relation("HomeTeam", fields: [homeTeamName], references: [name])
+  awayTeam                Team?     @relation("AwayTeam", fields: [awayTeamName], references: [name])
+  opportunities           Opportunity[]
+  notes_list              OutreachNote[] @relation("EventNotes")
+
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+}
+
+// ─── OPPORTUNITIES ────────────────────────────────────────────────────────────────
+
+model Opportunity {
+  id                     String   @id @default(cuid())
+  title                  String
+  eventId                String?
+  event                  Event?   @relation(fields: [eventId], references: [id])
+
+  // Key fields
+  travelingTeam          String?
+  targetMarket           String?
+  country                String?
+  city                   String?
+  competition            String?
+  eventDate              DateTime?
+  venue                  String?
+
+  // Transport types
+  transportType          String?  // bus | charter | scheduled_air | hospitality | mixed
+  busWorthy              Boolean  @default(false)
+  charterWorthy          Boolean  @default(false)
+  flightWorthy           Boolean  @default(false)
+  hospitalityWorthy      Boolean  @default(false)
+
+  // Scoring
+  priorityRating         Int?     @default(3) // 1-5
+  confidenceLevel        String?  // high | medium | low
+  supporterSize          Int?
+  estimatedPax           Int?
+
+  // Intelligence flags
+  travelAgentAvailable   Boolean  @default(false)
+  clubContactAvailable   Boolean  @default(false)
+  supporterCoordinatorFound Boolean @default(false)
+  bestOutreachPath       String?
+  whyItMatters           String?
+
+  // Airports
+  departureAirport       String?
+  arrivalAirport         String?
+
+  // Status
+  status                 String   @default("identified") // identified | researching | contacted | active | closed
+  tags                   String?
+
+  // Source traceability
+  sourceFileId           String?
+  sourceFile             ImportedFile? @relation(fields: [sourceFileId], references: [id])
+
+  // Relations
+  notes_list             OutreachNote[] @relation("OpportunityNotes")
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+// ─── SUPPORTER CLUBS ──────────────────────────────────────────────────────────────
+
+model SupporterClub {
+  id                    String  @id @default(cuid())
+  clubName              String
+  officialStatus        String? // official | unofficial | affiliated
+  teamSupported         String?
+  scope                 String? // local | national | international
+  city                  String?
+  country               String?
+  region                String?
+  members               Int?
+  followers             Int?
+  primaryDepartureAirport String?
+
+  // Online presence
+  website               String?
+  instagram             String?
+  facebook              String?
+  x                     String? // formerly Twitter
+  linkedin              String?
+  whatsapp              String?
+  email                 String?
+  phone                 String?
+
+  // Outreach intelligence
+  bestOutreachRoute     String? // email | social | phone | form | whatsapp
+  travelCoordinatorFound Boolean @default(false)
+  travelCoordinatorName String?
+  travelCoordinatorContact String?
+  supporterRelevance    Int?    // 1-5
+
+  // Status
+  status                String  @default("active")
+  tags                  String?
+  notes                 String?
+
+  // Source traceability
+  sourceFileId          String?
+  sourceFile            ImportedFile? @relation(fields: [sourceFileId], references: [id])
+  sourceSheetName       String?
+  sourceUrl             String?
+
+  // Relations
+  team                  Team?   @relation(fields: [teamSupported], references: [name])
+  contacts              Contact[] @relation("SupporterClubContacts")
+  notes_list            OutreachNote[] @relation("SupporterClubNotes")
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+// ─── CONTACTS (unified across all org types) ────────────────────────────────────
+
+model Contact {
+  id                    String  @id @default(cuid())
+  fullName              String
+  firstName             String?
+  lastName              String?
+  role                  String?
+  organizationType      String? // supporter_club | travel_agent | club_dept | other
+  organization          String?
+
+  // Contact details
+  email                 String?
+  phone                 String?
+  linkedin              String?
+  instagram             String?
+  facebook              String?
+  website               String?
+  formLink              String?
+
+  // Location
+  city                  String?
+  country               String?
+
+  // Intelligence
+  confidenceLevel       String? // high | medium | low | unverified
+  isDecisionMaker       Boolean @default(false)
+  supporterTravelRelevance Boolean @default(false)
+  charterRelevance      Boolean @default(false)
+  hospitalityRelevance  Boolean @default(false)
+  bestOutreachRoute     String?
+
+  // Status flags
+  status                String  @default("active")
+  tags                  String?
+  notes                 String?
+  markedForFollowUp     Boolean @default(false)
+  contacted             Boolean @default(false)
+  contactedDate         DateTime?
+
+  // Source traceability
+  sourceFileId          String?
+  sourceFile            ImportedFile? @relation(fields: [sourceFileId], references: [id])
+  sourceSheetName       String?
+
+  // Relations
+  supporterClubId       String?
+  supporterClub         SupporterClub? @relation("SupporterClubContacts", fields: [supporterClubId], references: [id])
+  travelAgentId         String?
+  travelAgent           TravelAgent?   @relation("TravelAgentContacts", fields: [travelAgentId], references: [id])
+  clubDepartmentId      String?
+  clubDepartment        ClubDepartment? @relation("ClubDeptContacts", fields: [clubDepartmentId], references: [id])
+  notes_list            OutreachNote[] @relation("ContactNotes")
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+// ─── TRAVEL AGENTS ───────────────────────────────────────────────────────────────
+
+model TravelAgent {
+  id                   String  @id @default(cuid())
+  companyName          String
+  specialization       String?
+  country              String?
+  city                 String?
+  region               String?
+  website              String?
+  email                String?
+  phone                String?
+
+  // Capabilities
+  groupTravel          Boolean @default(false)
+  sportsTravel         Boolean @default(false)
+  supporterTravel      Boolean @default(false)
+  footballTravel       Boolean @default(false)
+  rugbyTravel          Boolean @default(false)
+  charterRelevance     Boolean @default(false)
+  hospitalityPackages  Boolean @default(false)
+
+  // Intelligence
+  bestContactPerson    String?
+  bestOutreachRoute    String?
+  priorityRating       Int?
+  confidenceLevel      String?
+
+  // Status
+  status               String  @default("active")
+  tags                 String?
+  notes                String?
+
+  // Source traceability
+  sourceFileId         String?
+  sourceFile           ImportedFile? @relation(fields: [sourceFileId], references: [id])
+  sourceSheetName      String?
+
+  // Relations
+  contacts             Contact[] @relation("TravelAgentContacts")
+  notes_list           OutreachNote[] @relation("TravelAgentNotes")
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// ─── CLUB TRAVEL DEPARTMENTS ────────────────────────────────────────────────────
+
+model ClubDepartment {
+  id                   String  @id @default(cuid())
+  clubName             String
+  teamName             String?
+  department           String? // supporter_travel | ticketing | commercial | operations | partnerships
+  country              String?
+  city                 String?
+  website              String?
+  email                String?
+  phone                String?
+
+  // Relevance flags
+  supporterTravelRelevance Boolean @default(false)
+  charterRelevance     Boolean @default(false)
+  hospitalityRelevance Boolean @default(false)
+  externalTravelPartner String?
+
+  // Intelligence
+  priorityRating       Int?
+  bestOutreachRoute    String?
+
+  // Status
+  status               String  @default("active")
+  tags                 String?
+  notes                String?
+
+  // Source traceability
+  sourceFileId         String?
+  sourceFile           ImportedFile? @relation(fields: [sourceFileId], references: [id])
+  sourceSheetName      String?
+
+  // Relations
+  team                 Team?   @relation(fields: [teamName], references: [name])
+  contacts             Contact[] @relation("ClubDeptContacts")
+  notes_list           OutreachNote[] @relation("ClubDeptNotes")
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// ─── OUTREACH NOTES ──────────────────────────────────────────────────────────────
+
+model OutreachNote {
+  id                String   @id @default(cuid())
+  content           String
+  noteType          String   @default("general") // general | status | follow_up | contacted | research
+  status            String?  // open | closed | in_progress
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String   @default("team")
+
+  // Polymorphic relations (only one will be set)
+  eventId           String?
+  event             Event?        @relation("EventNotes", fields: [eventId], references: [id])
+  opportunityId     String?
+  opportunity       Opportunity?  @relation("OpportunityNotes", fields: [opportunityId], references: [id])
+  supporterClubId   String?
+  supporterClub     SupporterClub? @relation("SupporterClubNotes", fields: [supporterClubId], references: [id])
+  contactId         String?
+  contact           Contact?      @relation("ContactNotes", fields: [contactId], references: [id])
+  travelAgentId     String?
+  travelAgent       TravelAgent?  @relation("TravelAgentNotes", fields: [travelAgentId], references: [id])
+  clubDepartmentId  String?
+  clubDepartment    ClubDepartment? @relation("ClubDeptNotes", fields: [clubDepartmentId], references: [id])
+}
