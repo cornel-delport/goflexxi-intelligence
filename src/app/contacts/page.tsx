@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { UserCheck, Filter, Download, Search, Mail, Phone, Linkedin, Globe, ExternalLink } from "lucide-react";
-import { truncate } from "@/lib/utils";
+import { UserCheck, Filter, Download, Search } from "lucide-react";
 import { ConfidenceBadge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ContactLink } from "@/components/ui/ContactLink";
 
 interface Contact {
   id: string;
@@ -163,24 +163,10 @@ export default function ContactsPage() {
                     </td>
                     <td>
                       <div className="space-y-0.5">
-                        {c.email && (
-                          <div className="flex items-center gap-1.5 text-xs">
-                            <Mail className="w-3 h-3 text-brand-500" />
-                            <span className="text-gray-700">{truncate(c.email, 28)}</span>
-                          </div>
-                        )}
-                        {c.phone && (
-                          <div className="flex items-center gap-1.5 text-xs">
-                            <Phone className="w-3 h-3 text-green-500" />
-                            <span className="text-gray-700">{c.phone}</span>
-                          </div>
-                        )}
-                        {c.linkedin && (
-                          <div className="flex items-center gap-1.5 text-xs">
-                            <Linkedin className="w-3 h-3 text-blue-600" />
-                            <span className="text-gray-500">LinkedIn</span>
-                          </div>
-                        )}
+                        <ContactLink type="email"    value={c.email}    maxLen={28} />
+                        <ContactLink type="phone"    value={c.phone}    />
+                        <ContactLink type="linkedin" value={c.linkedin} />
+                        <ContactLink type="instagram" value={c.instagram} />
                       </div>
                     </td>
                     <td>

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Briefcase, Filter, Search, Globe, Mail, Phone, CheckCircle, Star } from "lucide-react";
-import { truncate } from "@/lib/utils";
+import { Briefcase, Filter, Search, CheckCircle } from "lucide-react";
 import { PriorityBadge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ContactLink } from "@/components/ui/ContactLink";
 
 interface TravelAgent {
   id: string;
@@ -118,25 +118,10 @@ export default function TravelAgentsPage() {
               </div>
 
               {/* Contact details */}
-              <div className="space-y-1.5 mb-3">
-                {a.email && (
-                  <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                    <Mail className="w-3 h-3 text-brand-500" />
-                    <span>{truncate(a.email, 30)}</span>
-                  </div>
-                )}
-                {a.phone && (
-                  <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                    <Phone className="w-3 h-3 text-green-500" />
-                    <span>{a.phone}</span>
-                  </div>
-                )}
-                {a.website && (
-                  <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                    <Globe className="w-3 h-3" />
-                    <span>{truncate(a.website, 30)}</span>
-                  </div>
-                )}
+              <div className="space-y-1 mb-3">
+                <ContactLink type="email"   value={a.email}   maxLen={30} />
+                <ContactLink type="phone"   value={a.phone}   />
+                <ContactLink type="website" value={a.website} maxLen={30} />
               </div>
 
               {/* Best contact */}
@@ -148,11 +133,14 @@ export default function TravelAgentsPage() {
 
               {/* Linked contacts */}
               {a.contacts.length > 0 && (
-                <div className="pt-2 border-t border-gray-100">
+                <div className="pt-2 border-t border-gray-100 space-y-1">
                   {a.contacts.map((c) => (
-                    <div key={c.id} className="text-xs text-gray-600 flex items-center gap-1">
-                      <CheckCircle className="w-2.5 h-2.5 text-brand-400" />
-                      {c.fullName} {c.role && `• ${c.role}`}
+                    <div key={c.id} className="text-xs text-gray-600">
+                      <div className="flex items-center gap-1">
+                        <CheckCircle className="w-2.5 h-2.5 text-brand-400 shrink-0" />
+                        <span>{c.fullName}{c.role && ` • ${c.role}`}</span>
+                      </div>
+                      {c.email && <ContactLink type="email" value={c.email} maxLen={28} className="ml-3.5" />}
                     </div>
                   ))}
                 </div>

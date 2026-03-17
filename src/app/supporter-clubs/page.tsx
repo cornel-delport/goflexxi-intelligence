@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Users, Filter, Download, Search, Globe, Mail, Phone, Instagram, Facebook, MessageCircle, CheckCircle } from "lucide-react";
-import { truncate } from "@/lib/utils";
+import { Users, Filter, Download, Search, MessageCircle, CheckCircle } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ContactLink } from "@/components/ui/ContactLink";
 
 interface SupporterClub {
   id: string;
@@ -135,12 +135,13 @@ export default function SupporterClubsPage() {
                     </div>
                   </td>
                   <td>
-                    <div className="flex items-center gap-2">
-                      {club.email && <Mail className="w-3.5 h-3.5 text-brand-500" aria-label={club.email} />}
-                      {club.phone && <Phone className="w-3.5 h-3.5 text-green-500" aria-label={club.phone} />}
-                      {club.instagram && <Instagram className="w-3.5 h-3.5 text-pink-500" aria-label={club.instagram} />}
-                      {club.facebook && <Facebook className="w-3.5 h-3.5 text-blue-500" aria-label={club.facebook} />}
-                      {club.website && <Globe className="w-3.5 h-3.5 text-gray-400" aria-label={club.website} />}
+                    <div className="space-y-0.5">
+                      <ContactLink type="email"     value={club.email}     maxLen={28} />
+                      <ContactLink type="phone"     value={club.phone}     />
+                      <ContactLink type="website"   value={club.website}   maxLen={28} />
+                      <ContactLink type="instagram" value={club.instagram} />
+                      <ContactLink type="facebook"  value={club.facebook}  />
+                      <ContactLink type="twitter"   value={club.x}         />
                     </div>
                     {club.contacts.length > 0 && (
                       <div className="text-xs text-brand-600 mt-1">{club.contacts[0].fullName}</div>
@@ -189,12 +190,13 @@ export default function SupporterClubsPage() {
               <div className="text-xs text-gray-500 mb-3">
                 {[club.city, club.country].filter(Boolean).join(", ") || "Location unknown"}
               </div>
-              <div className="flex items-center gap-2 mb-3">
-                {club.email && <Mail className="w-3.5 h-3.5 text-brand-500" />}
-                {club.phone && <Phone className="w-3.5 h-3.5 text-green-500" />}
-                {club.instagram && <Instagram className="w-3.5 h-3.5 text-pink-500" />}
-                {club.facebook && <Facebook className="w-3.5 h-3.5 text-blue-500" />}
-                {club.website && <Globe className="w-3.5 h-3.5 text-gray-400" />}
+              <div className="flex flex-col gap-0.5 mb-3">
+                <ContactLink type="email"     value={club.email}     maxLen={30} />
+                <ContactLink type="phone"     value={club.phone}     />
+                <ContactLink type="website"   value={club.website}   maxLen={30} />
+                <ContactLink type="instagram" value={club.instagram} />
+                <ContactLink type="facebook"  value={club.facebook}  />
+                <ContactLink type="twitter"   value={club.x}         />
               </div>
               {club.travelCoordinatorFound && (
                 <div className="text-xs text-green-600 bg-green-50 rounded px-2 py-1 flex items-center gap-1">

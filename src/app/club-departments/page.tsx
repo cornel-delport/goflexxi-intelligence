@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Building2, Filter, Search, Mail, Phone, CheckCircle } from "lucide-react";
-import { truncate } from "@/lib/utils";
+import { Building2, Filter, Search, CheckCircle } from "lucide-react";
 import { PriorityBadge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ContactLink } from "@/components/ui/ContactLink";
 
 interface ClubDepartment {
   id: string;
@@ -128,18 +128,8 @@ export default function ClubDepartmentsPage() {
                   </td>
                   <td>
                     <div className="space-y-0.5">
-                      {d.email && (
-                        <div className="flex items-center gap-1 text-xs text-gray-600">
-                          <Mail className="w-3 h-3 text-brand-500" />
-                          {truncate(d.email, 25)}
-                        </div>
-                      )}
-                      {d.phone && (
-                        <div className="flex items-center gap-1 text-xs text-gray-600">
-                          <Phone className="w-3 h-3 text-green-500" />
-                          {d.phone}
-                        </div>
-                      )}
+                      <ContactLink type="email" value={d.email} maxLen={25} />
+                      <ContactLink type="phone" value={d.phone} />
                     </div>
                   </td>
                   <td>
@@ -161,11 +151,14 @@ export default function ClubDepartmentsPage() {
                     ) : <span className="text-gray-400">—</span>}
                   </td>
                   <td>
-                    <div className="space-y-0.5">
+                    <div className="space-y-1">
                       {d.contacts.map((c) => (
-                        <div key={c.id} className="flex items-center gap-1 text-xs text-gray-600">
-                          <CheckCircle className="w-2.5 h-2.5 text-brand-400 shrink-0" />
-                          {c.fullName}
+                        <div key={c.id} className="text-xs text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <CheckCircle className="w-2.5 h-2.5 text-brand-400 shrink-0" />
+                            <span>{c.fullName}{c.role && ` • ${c.role}`}</span>
+                          </div>
+                          {c.email && <ContactLink type="email" value={c.email} maxLen={26} className="ml-3.5" />}
                         </div>
                       ))}
                     </div>
