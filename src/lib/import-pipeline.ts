@@ -324,11 +324,18 @@ export async function runImportPipeline(input: PipelineInput): Promise<PipelineR
   let skippedRows  = 0;
   let sheetsProcessed = 0;
 
+  // Resolve the DriveFile DB record id (FK is to DriveFile.id, not the Google Drive file ID)
+  let driveFileDbId: string | null = null;
+  if (input.driveFileId) {
+    const driveRec = await prisma.driveFile.findUnique({ where: { driveFileId: input.driveFileId } });
+    driveFileDbId = driveRec?.id ?? null;
+  }
+
   // Create a FileImportJob to track this run
   const job = await prisma.fileImportJob.create({
     data: {
       sourceType:  input.sourceType ?? "local_upload",
-      driveFileId: input.driveFileId ?? null,
+      driveFileId: driveFileDbId,
       status:      "running",
     },
   });
