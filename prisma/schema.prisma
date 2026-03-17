@@ -325,7 +325,7 @@ model TravelAgent {
   specialization       String?
   country              String?
   city                 String?
-  region               String?
+  region               String?  // e.g. "UK", "Europe", "Africa"
   website              String?
   email                String?
   phone                String?

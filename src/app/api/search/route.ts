@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ results: {}, query: q, total: 0 });
     }
 
-    const contains = { contains: q };
+    const contains = { contains: q, mode: "insensitive" as const };
 
     const [events, supporterClubs, contacts, travelAgents, clubDepts, opportunities] =
       await Promise.all([
@@ -21,13 +21,17 @@ export async function GET(req: NextRequest) {
               { homeTeamName: contains },
               { awayTeamName: contains },
               { competition:  contains },
+              { category:     contains },
+              { stage:        contains },
               { city:         contains },
               { country:      contains },
               { venueName:    contains },
+              { notes:        contains },
+              { dateText:     contains },
             ],
           },
           orderBy: { eventDate: "asc" },
-          take: 5,
+          take: 8,
         }),
 
         prisma.supporterClub.findMany({
@@ -37,11 +41,16 @@ export async function GET(req: NextRequest) {
               { teamSupported: contains },
               { city:          contains },
               { country:       contains },
+              { region:        contains },
               { email:         contains },
+              { phone:         contains },
+              { notes:         contains },
+              { travelCoordinatorName: contains },
+              { bestOutreachRoute:     contains },
             ],
           },
-          take: 5,
-          include: { contacts: { take: 1, select: { fullName: true, email: true } } },
+          take: 8,
+          include: { contacts: { take: 2, select: { fullName: true, email: true, role: true } } },
         }),
 
         prisma.contact.findMany({
@@ -49,13 +58,16 @@ export async function GET(req: NextRequest) {
             OR: [
               { fullName:     contains },
               { email:        contains },
+              { phone:        contains },
               { role:         contains },
               { organization: contains },
               { country:      contains },
               { city:         contains },
+              { notes:        contains },
+              { bestOutreachRoute: contains },
             ],
           },
-          take: 5,
+          take: 8,
           include: {
             supporterClub:  { select: { clubName: true } },
             travelAgent:    { select: { companyName: true } },
@@ -66,13 +78,18 @@ export async function GET(req: NextRequest) {
         prisma.travelAgent.findMany({
           where: {
             OR: [
-              { companyName:    contains },
-              { specialization: contains },
-              { country:        contains },
-              { city:           contains },
+              { companyName:      contains },
+              { specialization:   contains },
+              { country:          contains },
+              { city:             contains },
+              { region:           contains },
+              { email:            contains },
+              { phone:            contains },
+              { bestContactPerson: contains },
+              { notes:            contains },
             ],
           },
-          take: 5,
+          take: 8,
         }),
 
         prisma.clubDepartment.findMany({
@@ -82,9 +99,14 @@ export async function GET(req: NextRequest) {
               { teamName:   contains },
               { department: contains },
               { country:    contains },
+              { city:       contains },
+              { email:      contains },
+              { phone:      contains },
+              { notes:      contains },
+              { externalTravelPartner: contains },
             ],
           },
-          take: 5,
+          take: 8,
         }),
 
         prisma.opportunity.findMany({
@@ -94,10 +116,13 @@ export async function GET(req: NextRequest) {
               { travelingTeam: contains },
               { targetMarket:  contains },
               { country:       contains },
+              { city:          contains },
               { competition:   contains },
+              { venue:         contains },
+              { whyItMatters:  contains },
             ],
           },
-          take: 5,
+          take: 8,
         }),
       ]);
 
