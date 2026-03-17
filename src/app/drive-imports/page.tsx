@@ -216,6 +216,60 @@ export default function DriveImportsPage() {
     }
   };
 
+  const handleSyncAndImportAll = async () => {
+    setScanning(true);
+    try {
+      // Step 1: scan Drive for new/updated files
+      const scanRes = await fetch("/api/drive/scan", { method: "POST" });
+      const scanData = await scanRes.json();
+      if (scanData.error || !scanData.connected) {
+        showToast(scanData.error ?? "Cannot connect to Google Drive", "err");
+        return;
+      }
+      await loadStatus();
+      await loadFiles();
+
+      // Step 2: fetch all pending + updated file IDs
+      const [pendingRes, updatedRes] = await Promise.all([
+        fetch("/api/drive/files?status=pending"),
+        fetch("/api/drive/files?status=updated"),
+      ]);
+      const [pendingData, updatedData] = await Promise.all([
+        pendingRes.json(),
+        updatedRes.json(),
+      ]);
+      const ids = [
+        ...(pendingData.files ?? []).map((f: { driveFileId: string }) => f.driveFileId),
+        ...(updatedData.files ?? []).map((f: { driveFileId: string }) => f.driveFileId),
+      ];
+
+      if (ids.length === 0) {
+        showToast("All files already up to date", "ok");
+        return;
+      }
+
+      // Step 3: import all
+      for (const id of ids) setImporting((s) => new Set(s).add(id));
+      const importRes = await fetch("/api/drive/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ driveFileIds: ids }),
+      });
+      const importData = await importRes.json();
+      showToast(
+        `Imported ${importData.summary?.success ?? 0} file(s)${importData.summary?.failed ? `, ${importData.summary.failed} failed` : ""}`,
+        importData.summary?.failed > 0 ? "err" : "ok"
+      );
+      await loadStatus();
+      await loadFiles();
+    } catch {
+      showToast("Sync failed", "err");
+    } finally {
+      setScanning(false);
+      setImporting(new Set());
+    }
+  };
+
   const handleImport = async (driveFileId: string) => {
     setImporting((s) => new Set(s).add(driveFileId));
     try {
@@ -311,15 +365,14 @@ export default function DriveImportsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {actionable > 0 && (
-            <button
-              onClick={handleImportAll}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-lg text-sm font-medium hover:bg-brand-600 transition-colors"
-            >
-              <Download size={15} />
-              Import all new ({actionable})
-            </button>
-          )}
+          <button
+            onClick={handleSyncAndImportAll}
+            disabled={scanning}
+            className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-lg text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50"
+          >
+            <Download size={15} className={scanning ? "animate-pulse" : ""} />
+            {scanning ? "Syncing…" : actionable > 0 ? `Import from Drive (${actionable})` : "Import from Drive"}
+          </button>
           <button
             onClick={handleScan}
             disabled={scanning}
