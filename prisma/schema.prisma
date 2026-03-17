@@ -214,6 +214,7 @@ model SupporterClub {
   clubName              String
   officialStatus        String? // official | unofficial | affiliated
   teamSupported         String?
+  sport                 String? // Football | Rugby | Cricket | etc.
   scope                 String? // local | national | international
   city                  String?
   country               String?
@@ -369,6 +370,8 @@ model ClubDepartment {
   id                   String  @id @default(cuid())
   clubName             String
   teamName             String?
+  sport                String? // Football | Rugby | Cricket | etc.
+  league               String? // Premier League | La Liga | etc.
   department           String? // supporter_travel | ticketing | commercial | operations | partnerships
   country              String?
   city                 String?

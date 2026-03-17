@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
     const q       = searchParams.get("q") ?? "";
     const country = searchParams.get("country") ?? "";
     const dept    = searchParams.get("dept") ?? "";
+    const sport   = searchParams.get("sport") ?? "";
     const page    = parseInt(searchParams.get("page") ?? "1");
     const limit   = parseInt(searchParams.get("limit") ?? "50");
     const skip    = (page - 1) * limit;
@@ -15,16 +16,20 @@ export async function GET(req: NextRequest) {
 
     if (q) {
       where.OR = [
-        { clubName:   { contains: q } },
-        { teamName:   { contains: q } },
-        { department: { contains: q } },
-        { country:    { contains: q } },
-        { city:       { contains: q } },
+        { clubName:   { contains: q, mode: "insensitive" } },
+        { teamName:   { contains: q, mode: "insensitive" } },
+        { sport:      { contains: q, mode: "insensitive" } },
+        { league:     { contains: q, mode: "insensitive" } },
+        { department: { contains: q, mode: "insensitive" } },
+        { country:    { contains: q, mode: "insensitive" } },
+        { city:       { contains: q, mode: "insensitive" } },
+        { notes:      { contains: q, mode: "insensitive" } },
       ];
     }
 
-    if (country) where.country    = { contains: country };
-    if (dept)    where.department = { contains: dept };
+    if (country) where.country    = { contains: country, mode: "insensitive" };
+    if (dept)    where.department = { contains: dept,    mode: "insensitive" };
+    if (sport)   where.sport      = { contains: sport,   mode: "insensitive" };
 
     const [departments, total] = await Promise.all([
       prisma.clubDepartment.findMany({

@@ -287,6 +287,7 @@ async function insertClub_(r: Record<string, unknown>, fid: string, sheet: strin
       clubName:       name,
       officialStatus: str(r.official ?? r.status ?? r.official_status /* "Official Status" */),
       teamSupported:  str(r.team_supported ?? r.team),
+      sport:          str(r.sport),
       scope:          str(r.scope),
       city:           str(r.city ?? r.club_base ?? r.club_base_or_origin /* File2 */),
       country:        str(r.country),
@@ -524,14 +525,14 @@ async function insertDept_(r: Record<string, unknown>, fid: string, sheet: strin
     str(r.away_supporter_culture) ? `Away culture: ${str(r.away_supporter_culture)}` : null,
     str(r.goflexxi_relevance) ? `GoFlexxi: ${str(r.goflexxi_relevance)}` : null,
     str(r.why_this_is_a_priority) ? `Priority reason: ${str(r.why_this_is_a_priority)}` : null,
-    str(r.sport) ? `Sport: ${str(r.sport)}` : null,
-    str(r.league) ? `League: ${str(r.league)}` : null,
   ].filter(Boolean);
 
   await prisma.clubDepartment.create({
     data: {
       clubName:   name,
       teamName:   str(r.team_name ?? r.team ?? r.club_team),
+      sport:      str(r.sport),
+      league:     str(r.league),
       department: str(r.department ?? r.dept ?? r.internal_role /* "Internal Role" */),
       country:    str(r.country),
       city:       str(r.city),

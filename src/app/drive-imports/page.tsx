@@ -328,6 +328,29 @@ export default function DriveImportsPage() {
     }
   };
 
+  const handleReimportAll = async () => {
+    const toImport = files
+      .filter((f) => ["pending", "updated", "failed", "imported"].includes(f.importStatus))
+      .map((f) => f.driveFileId);
+    if (toImport.length === 0) { showToast("No files to import", "ok"); return; }
+    for (const id of toImport) setImporting((s) => new Set(s).add(id));
+    try {
+      const res = await fetch("/api/drive/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ driveFileIds: toImport }),
+      });
+      const data = await res.json();
+      showToast(
+        `Re-imported ${data.summary?.success ?? 0} file(s)${data.summary?.failed ? `, ${data.summary.failed} failed` : ""}`,
+        data.summary?.failed > 0 ? "err" : "ok"
+      );
+      await loadStatus();
+      await loadFiles();
+    } catch { showToast("Re-import failed", "err"); }
+    finally { setImporting(new Set()); }
+  };
+
   const handleIgnore = async (driveFileId: string) => {
     await fetch("/api/drive/files", {
       method: "PATCH",
@@ -372,6 +395,15 @@ export default function DriveImportsPage() {
           >
             <Download size={15} className={scanning ? "animate-pulse" : ""} />
             {scanning ? "Syncing…" : actionable > 0 ? `Import from Drive (${actionable})` : "Import from Drive"}
+          </button>
+          <button
+            onClick={handleReimportAll}
+            disabled={scanning}
+            className="flex items-center gap-2 px-4 py-2 border border-orange-300 text-orange-700 rounded-lg text-sm font-medium hover:bg-orange-50 transition-colors disabled:opacity-50"
+            title="Re-import all files including already imported ones"
+          >
+            <RefreshCw size={15} />
+            Re-import All
           </button>
           <button
             onClick={handleScan}

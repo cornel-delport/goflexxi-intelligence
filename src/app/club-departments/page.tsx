@@ -6,10 +6,14 @@ import { PriorityBadge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ContactLink } from "@/components/ui/ContactLink";
 
+const SPORTS = ["Football", "Rugby", "Cricket", "Basketball", "Tennis", "Athletics", "Cycling", "Motorsport"];
+
 interface ClubDepartment {
   id: string;
   clubName: string;
   teamName: string | null;
+  sport: string | null;
+  league: string | null;
   department: string | null;
   country: string | null;
   city: string | null;
@@ -41,11 +45,12 @@ export default function ClubDepartmentsPage() {
   const [q, setQ] = useState("");
   const [country, setCountry] = useState("");
   const [dept, setDept] = useState("");
+  const [sport, setSport] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
   const fetch_ = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams({ q, country, dept });
+    const params = new URLSearchParams({ q, country, dept, sport });
     try {
       const res = await fetch(`/api/club-departments?${params}`);
       const data = await res.json();
@@ -53,7 +58,7 @@ export default function ClubDepartmentsPage() {
       setTotal(data.total ?? 0);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-  }, [q, country, dept]);
+  }, [q, country, dept, sport]);
 
   useEffect(() => { fetch_(); }, [fetch_]);
 
@@ -72,11 +77,18 @@ export default function ClubDepartmentsPage() {
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search clubs, teams, departments, countries…" className="input pl-9" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search clubs, sports, leagues, countries…" className="input pl-9" />
       </div>
 
       {showFilters && (
-        <div className="filter-panel grid grid-cols-3 gap-3">
+        <div className="filter-panel grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
+            <label className="label">Sport</label>
+            <select className="select" value={sport} onChange={(e) => setSport(e.target.value)}>
+              <option value="">All sports</option>
+              {SPORTS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
           <div>
             <label className="label">Country</label>
             <input className="input" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="e.g. England" />
@@ -98,6 +110,7 @@ export default function ClubDepartmentsPage() {
             <thead>
               <tr>
                 <th>Club / Team</th>
+                <th>Sport / League</th>
                 <th>Department</th>
                 <th>Location</th>
                 <th>Contact Details</th>
@@ -117,6 +130,12 @@ export default function ClubDepartmentsPage() {
                     )}
                   </td>
                   <td>
+                    <div className="text-xs space-y-0.5">
+                      {d.sport && <span className="badge bg-blue-50 text-blue-700">{d.sport}</span>}
+                      {d.league && <div className="text-gray-500">{d.league}</div>}
+                    </div>
+                  </td>
+                  <td>
                     {d.department ? (
                       <span className="badge bg-gray-100 text-gray-700">
                         {DEPT_LABELS[d.department] ?? d.department}
@@ -128,8 +147,9 @@ export default function ClubDepartmentsPage() {
                   </td>
                   <td>
                     <div className="space-y-0.5">
-                      <ContactLink type="email" value={d.email} maxLen={25} />
-                      <ContactLink type="phone" value={d.phone} />
+                      <ContactLink type="email"   value={d.email}   maxLen={25} />
+                      <ContactLink type="phone"   value={d.phone}   />
+                      <ContactLink type="website" value={d.website} maxLen={25} />
                     </div>
                   </td>
                   <td>
@@ -147,7 +167,7 @@ export default function ClubDepartmentsPage() {
                   </td>
                   <td className="text-xs text-gray-600">
                     {d.externalTravelPartner ? (
-                      <span className="text-brand-700 font-medium">{truncate(d.externalTravelPartner, 25)}</span>
+                      <span className="text-brand-700 font-medium">{d.externalTravelPartner}</span>
                     ) : <span className="text-gray-400">—</span>}
                   </td>
                   <td>

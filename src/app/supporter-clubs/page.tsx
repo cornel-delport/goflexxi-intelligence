@@ -10,6 +10,7 @@ interface SupporterClub {
   clubName: string;
   officialStatus: string | null;
   teamSupported: string | null;
+  sport: string | null;
   scope: string | null;
   city: string | null;
   country: string | null;
@@ -31,6 +32,8 @@ interface SupporterClub {
   sourceFile: { originalName: string } | null;
 }
 
+const SPORTS = ["Football", "Rugby", "Cricket", "Basketball", "Tennis", "Athletics", "Cycling", "Motorsport"];
+
 export default function SupporterClubsPage() {
   const [clubs, setClubs] = useState<SupporterClub[]>([]);
   const [total, setTotal] = useState(0);
@@ -38,12 +41,13 @@ export default function SupporterClubsPage() {
   const [q, setQ] = useState("");
   const [country, setCountry] = useState("");
   const [team, setTeam] = useState("");
+  const [sport, setSport] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState<"cards" | "table">("table");
 
   const fetch_ = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams({ q, country, team });
+    const params = new URLSearchParams({ q, country, team, sport });
     try {
       const res = await fetch(`/api/supporter-clubs?${params}`);
       const data = await res.json();
@@ -51,7 +55,7 @@ export default function SupporterClubsPage() {
       setTotal(data.total ?? 0);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-  }, [q, country, team]);
+  }, [q, country, team, sport]);
 
   useEffect(() => { fetch_(); }, [fetch_]);
 
@@ -81,7 +85,14 @@ export default function SupporterClubsPage() {
       </div>
 
       {showFilters && (
-        <div className="filter-panel grid grid-cols-3 gap-3">
+        <div className="filter-panel grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
+            <label className="label">Sport</label>
+            <select className="select" value={sport} onChange={(e) => setSport(e.target.value)}>
+              <option value="">All sports</option>
+              {SPORTS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
           <div>
             <label className="label">Country</label>
             <input className="input" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="e.g. USA" />
@@ -117,6 +128,7 @@ export default function SupporterClubsPage() {
                 <tr key={club.id}>
                   <td>
                     <div className="font-medium text-gray-900 text-sm">{club.clubName}</div>
+                    {club.sport && <span className="badge bg-blue-50 text-blue-700 mt-0.5">{club.sport}</span>}
                     {club.officialStatus && (
                       <span className={`badge mt-0.5 ${club.officialStatus.toLowerCase().includes("official") ? "bg-brand-50 text-brand-700" : "bg-gray-100 text-gray-500"}`}>
                         {club.officialStatus}
