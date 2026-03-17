@@ -64,8 +64,9 @@ interface DashboardData {
 export function DashboardClient() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadDashboard = () =>
     fetch("/api/dashboard")
       .then((r) => {
         if (!r.ok) throw new Error(`API error ${r.status}`);
@@ -74,16 +75,68 @@ export function DashboardClient() {
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
+
+  useEffect(() => {
+    // Load dashboard data immediately
+    loadDashboard();
+
+    // Auto-scan Drive for new/updated files on every app open
+    const autoSync = async () => {
+      try {
+        const scanRes = await fetch("/api/drive/scan", { method: "POST" });
+        if (!scanRes.ok) return;
+        const scan = await scanRes.json();
+        if (!scan.connected) return;
+
+        const toImport = (scan.newFiles ?? 0) + (scan.updatedFiles ?? 0);
+        if (toImport === 0) return;
+
+        // Auto-import new/updated files
+        setSyncStatus(`Syncing ${toImport} new file${toImport > 1 ? "s" : ""} from Drive…`);
+        const filesRes = await fetch("/api/drive/files?status=pending");
+        const updatedRes = await fetch("/api/drive/files?status=updated");
+        const [filesData, updatedData] = await Promise.all([filesRes.json(), updatedRes.json()]);
+        const ids = [
+          ...(filesData.files ?? []).map((f: { driveFileId: string }) => f.driveFileId),
+          ...(updatedData.files ?? []).map((f: { driveFileId: string }) => f.driveFileId),
+        ];
+        if (ids.length === 0) return;
+
+        await fetch("/api/drive/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ driveFileIds: ids }),
+        });
+
+        setSyncStatus(null);
+        // Reload dashboard to reflect imported data
+        loadDashboard();
+      } catch {
+        setSyncStatus(null);
+      }
+    };
+
+    autoSync();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) return <div className="text-sm text-gray-500">Loading dashboard…</div>;
   if (!data) return <div className="text-sm text-red-500">Failed to load dashboard</div>;
+
+  // Sync banner — shown while auto-importing Drive files
+  const SyncBanner = syncStatus ? (
+    <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2">
+      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+      {syncStatus}
+    </div>
+  ) : null;
 
   const { stats, upcoming, highPriorityOpps, recentFiles, dataQuality, charts, upcomingEvents, drive } = data;
   const hasData = stats.totalEvents > 0 || stats.totalContacts > 0;
 
   return (
     <div className="space-y-6 max-w-7xl">
+      {SyncBanner}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
