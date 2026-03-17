@@ -99,8 +99,6 @@ model Team {
   // Relations
   homeEvents    Event[]           @relation("HomeTeam")
   awayEvents    Event[]           @relation("AwayTeam")
-  supporterClubs SupporterClub[]
-  clubDepartments ClubDepartment[]
 }
 
 // ─── EVENTS ──────────────────────────────────────────────────────────────────────
@@ -252,7 +250,6 @@ model SupporterClub {
   sourceUrl             String?
 
   // Relations
-  team                  Team?   @relation(fields: [teamSupported], references: [name])
   contacts              Contact[] @relation("SupporterClubContacts")
   notes_list            OutreachNote[] @relation("SupporterClubNotes")
 
@@ -400,7 +397,6 @@ model ClubDepartment {
   sourceSheetName      String?
 
   // Relations
-  team                 Team?   @relation(fields: [teamName], references: [name])
   contacts             Contact[] @relation("ClubDeptContacts")
   notes_list           OutreachNote[] @relation("ClubDeptNotes")
 
