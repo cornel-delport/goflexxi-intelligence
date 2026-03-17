@@ -3,8 +3,7 @@
 // Set DATABASE_URL in .env — see .env.example for the format
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
