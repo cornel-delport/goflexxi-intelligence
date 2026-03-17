@@ -99,7 +99,7 @@ export async function checkDriveConnection(): Promise<DriveConnectionStatus> {
   }
 
   try {
-    await drive.files.get({ fileId: DRIVE_FOLDER_ID, fields: "id,name" });
+    await drive.files.get({ fileId: DRIVE_FOLDER_ID, fields: "id,name", supportsAllDrives: true });
     return { configured: true, connected: true, folderId: DRIVE_FOLDER_ID };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -128,6 +128,8 @@ export async function listDriveFiles(folderId = DRIVE_FOLDER_ID): Promise<DriveF
       fields: "nextPageToken, files(id, name, mimeType, webViewLink, createdTime, modifiedTime, md5Checksum)",
       pageSize: 100,
       pageToken,
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
     });
 
     const files = res.data.files ?? [];
@@ -166,19 +168,20 @@ export async function downloadDriveFile(driveFileId: string): Promise<Buffer> {
   const meta: any = await drive.files.get({
     fileId: driveFileId,
     fields: "id,name,mimeType",
+    supportsAllDrives: true,
   });
   const mimeType: string = meta.data.mimeType ?? "";
 
   if (mimeType === "application/vnd.google-apps.spreadsheet") {
     const res = await drive.files.export(
-      { fileId: driveFileId, mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+      { fileId: driveFileId, mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", supportsAllDrives: true },
       { responseType: "arraybuffer" }
     );
     return Buffer.from(res.data as ArrayBuffer);
   }
 
   const res = await drive.files.get(
-    { fileId: driveFileId, alt: "media" },
+    { fileId: driveFileId, alt: "media", supportsAllDrives: true },
     { responseType: "arraybuffer" }
   );
   return Buffer.from(res.data as ArrayBuffer);
