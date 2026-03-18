@@ -1,10 +1,16 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaNeon } from "@prisma/adapter-neon";
+import { neon } from "@neondatabase/serverless";
 
-// Standard Prisma client for PostgreSQL (Supabase / any PostgreSQL host)
+// Prisma 7 with Neon serverless adapter
 // DATABASE_URL is set in .env — see .env.example for the required format
 
 function createPrismaClient() {
+  const sql = neon(process.env.DATABASE_URL!);
+  const adapter = new PrismaNeon(sql);
+  
   return new PrismaClient({
+    adapter,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
 }
